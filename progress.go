@@ -17,13 +17,34 @@ type Progress struct {
 	speed            float64
 }
 
-func New() *Progress {
-	return &Progress{
+func New(options ...func(*Progress)) *Progress {
+	progress := &Progress{
 		Total:           0,
 		BarWidth:        50,
 		RefreshInterval: 200 * time.Millisecond,
+		current:         0,
+	}
+	for _, option := range options {
+		option(progress)
+	}
+	return progress
+}
 
-		current: 0,
+func WithTotal(total int) func(*Progress) {
+	return func(p *Progress) {
+		p.Total = total
+	}
+}
+
+func WithBarWidth(barWidth int) func(*Progress) {
+	return func(p *Progress) {
+		p.BarWidth = barWidth
+	}
+}
+
+func WithRefreshInterval(refreshInterval time.Duration) func(*Progress) {
+	return func(p *Progress) {
+		p.RefreshInterval = refreshInterval
 	}
 }
 
