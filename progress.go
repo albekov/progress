@@ -15,6 +15,7 @@ type Progress struct {
 	lastRefresh      time.Time
 	lastRefreshValue int
 	speed            float64
+	started          time.Time
 }
 
 func New(options ...func(*Progress)) *Progress {
@@ -23,6 +24,7 @@ func New(options ...func(*Progress)) *Progress {
 		BarWidth:        50,
 		RefreshInterval: 200 * time.Millisecond,
 		current:         0,
+		started:         time.Now(),
 	}
 	for _, option := range options {
 		option(progress)
@@ -109,20 +111,21 @@ func (p *Progress) renderBar() string {
 	if p.Total > 0 {
 		bar += fmt.Sprintf("/ %d ", p.Total)
 	}
-	bar += fmt.Sprintf("(%.2f it/s)", p.speed)
+	bar += fmt.Sprintf("(%s, %.2f it/s)", p.formatBarTime(), p.speed)
 	return bar
 }
 
-type number interface {
-	float64
-}
-
-func clamp[T number](value T, min T, max T) T {
-	if value < min {
-		return min
+func (p *Progress) formatBarTime() string {
+	timeFromStart := time.Since(p.started)
+	formatted := formatDuration(timeFromStart)
+	if p.Total > 0 {
+		percent := float64(p.current) / float64(p.Total)
+		percent = clamp(percent, 0, 1)
+		totalTime := time.Duration(float64(timeFromStart) / percent)
+		timeLeft := totalTime - timeFromStart
+		formatted += fmt.Sprintf("<%s", formatDuration(timeLeft))
+	} else {
+		formatted += "<?"
 	}
-	if value > max {
-		return max
-	}
-	return value
+	return formatted
 }
