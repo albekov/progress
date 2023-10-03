@@ -31,10 +31,8 @@ func formatDuration(duration time.Duration) string {
 	formatted := ""
 
 	if days > 0 {
-		formatted += fmt.Sprintf("%dd ", days)
-	}
-
-	if hours > 0 {
+		formatted += fmt.Sprintf("%dd %02d:", days, hours)
+	} else if hours > 0 {
 		formatted += fmt.Sprintf("%02d:", hours)
 	}
 
