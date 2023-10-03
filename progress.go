@@ -21,6 +21,7 @@ type Progress struct {
 	lastRefreshValue int
 	speed            float64
 	started          time.Time
+	timeFromStart    time.Duration
 }
 
 func New(options ...func(*Progress)) *Progress {
@@ -72,6 +73,7 @@ func (p *Progress) Done() {
 
 func (p *Progress) update() {
 	now := time.Now()
+	p.timeFromStart = now.Sub(p.started)
 	if p.lastRefresh.IsZero() {
 		p.lastRefresh = now
 		p.lastRefreshValue = p.current
@@ -121,13 +123,11 @@ func (p *Progress) renderBar() string {
 }
 
 func (p *Progress) formatBarTime() string {
-	timeFromStart := time.Since(p.started)
-	formatted := formatDuration(timeFromStart)
+	formatted := formatDuration(p.timeFromStart)
 	if p.Total > 0 {
 		percent := float64(p.current) / float64(p.Total)
 		percent = clamp(percent, 0, 1)
-		totalTime := time.Duration(float64(timeFromStart) / percent)
-		timeLeft := totalTime - timeFromStart
+		timeLeft := time.Duration(float64(p.timeFromStart) * (1 - percent) / percent)
 		formatted += fmt.Sprintf("<%s", formatDuration(timeLeft))
 	} else {
 		formatted += "<?"
