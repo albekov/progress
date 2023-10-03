@@ -5,6 +5,11 @@ import (
 	"time"
 )
 
+const (
+	DefaultBarWidth        = 50
+	DefaultRefreshInterval = 200 * time.Millisecond
+)
+
 type Progress struct {
 	Total int
 
@@ -21,8 +26,8 @@ type Progress struct {
 func New(options ...func(*Progress)) *Progress {
 	progress := &Progress{
 		Total:           0,
-		BarWidth:        50,
-		RefreshInterval: 200 * time.Millisecond,
+		BarWidth:        DefaultBarWidth,
+		RefreshInterval: DefaultRefreshInterval,
 		current:         0,
 		started:         time.Now(),
 	}
