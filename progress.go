@@ -11,10 +11,10 @@ const (
 )
 
 type Progress struct {
-	Total int
+	total int
 
-	BarWidth        int
-	RefreshInterval time.Duration
+	barWidth        int
+	refreshInterval time.Duration
 
 	current          int
 	lastRefresh      time.Time
@@ -26,9 +26,9 @@ type Progress struct {
 
 func New(options ...func(*Progress)) *Progress {
 	progress := &Progress{
-		Total:           0,
-		BarWidth:        DefaultBarWidth,
-		RefreshInterval: DefaultRefreshInterval,
+		total:           0,
+		barWidth:        DefaultBarWidth,
+		refreshInterval: DefaultRefreshInterval,
 		current:         0,
 		started:         time.Now(),
 	}
@@ -40,19 +40,19 @@ func New(options ...func(*Progress)) *Progress {
 
 func WithTotal(total int) func(*Progress) {
 	return func(p *Progress) {
-		p.Total = total
+		p.total = total
 	}
 }
 
 func WithBarWidth(barWidth int) func(*Progress) {
 	return func(p *Progress) {
-		p.BarWidth = barWidth
+		p.barWidth = barWidth
 	}
 }
 
 func WithRefreshInterval(refreshInterval time.Duration) func(*Progress) {
 	return func(p *Progress) {
-		p.RefreshInterval = refreshInterval
+		p.refreshInterval = refreshInterval
 	}
 }
 
@@ -79,7 +79,7 @@ func (p *Progress) update() {
 		p.lastRefreshValue = p.current
 	} else {
 		timeFromLastRefresh := now.Sub(p.lastRefresh)
-		if timeFromLastRefresh >= p.RefreshInterval {
+		if timeFromLastRefresh >= p.refreshInterval {
 			p.speed = float64(p.current-p.lastRefreshValue) / timeFromLastRefresh.Seconds()
 			p.lastRefresh = now
 			p.lastRefreshValue = p.current
@@ -99,13 +99,13 @@ func (p *Progress) refresh() {
 
 func (p *Progress) renderBar() string {
 	bar := ""
-	if p.Total > 0 {
-		percent := float64(p.current) / float64(p.Total)
+	if p.total > 0 {
+		percent := float64(p.current) / float64(p.total)
 		percent = clamp(percent, 0, 1)
 		bar = fmt.Sprintf("%-4s", fmt.Sprintf("%d%%", int(percent*100)))
 		bar += " ["
-		barWidth := int(percent * float64(p.BarWidth))
-		for i := 0; i < p.BarWidth; i++ {
+		barWidth := int(percent * float64(p.barWidth))
+		for i := 0; i < p.barWidth; i++ {
 			if i < barWidth {
 				bar += "#"
 			} else {
@@ -115,8 +115,8 @@ func (p *Progress) renderBar() string {
 		bar += "] "
 	}
 	bar += fmt.Sprintf("%d ", p.current)
-	if p.Total > 0 {
-		bar += fmt.Sprintf("/ %d ", p.Total)
+	if p.total > 0 {
+		bar += fmt.Sprintf("/ %d ", p.total)
 	}
 	bar += fmt.Sprintf("(%s, %.2f it/s)", p.formatBarTime(), p.speed)
 	return bar
@@ -124,8 +124,8 @@ func (p *Progress) renderBar() string {
 
 func (p *Progress) formatBarTime() string {
 	formatted := formatDuration(p.timeFromStart)
-	if p.Total > 0 {
-		percent := float64(p.current) / float64(p.Total)
+	if p.total > 0 {
+		percent := float64(p.current) / float64(p.total)
 		percent = clamp(percent, 0, 1)
 		timeLeft := time.Duration(float64(p.timeFromStart) * (1 - percent) / percent)
 		formatted += fmt.Sprintf("<%s", formatDuration(timeLeft))

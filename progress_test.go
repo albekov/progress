@@ -12,7 +12,7 @@ func TestFormatBarTime(t *testing.T) {
 	if progress.formatBarTime() != "00:25<?" {
 		t.Errorf("formatBarTime() = %v", progress.formatBarTime())
 	}
-	progress.Total = 100
+	progress.total = 100
 	if progress.formatBarTime() != "00:25<01:15" {
 		t.Errorf("formatBarTime() = %v", progress.formatBarTime())
 	}
@@ -30,8 +30,8 @@ func TestFormatBar(t *testing.T) {
 
 func TestWithRefreshInterval(t *testing.T) {
 	progress := New(WithRefreshInterval(500 * time.Millisecond))
-	if progress.RefreshInterval != 500*time.Millisecond {
-		t.Errorf("WithRefreshInterval() = %v", progress.RefreshInterval)
+	if progress.refreshInterval != 500*time.Millisecond {
+		t.Errorf("WithRefreshInterval() = %v", progress.refreshInterval)
 	}
 }
 
