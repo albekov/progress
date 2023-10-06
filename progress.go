@@ -10,12 +10,32 @@ const (
 	DefaultRefreshInterval = 200 * time.Millisecond
 )
 
-type Progress struct {
-	total int
-
+type ProgressOptions struct {
+	total           int
 	barWidth        int
 	refreshInterval time.Duration
+}
 
+func WithTotal(total int) func(*ProgressOptions) {
+	return func(p *ProgressOptions) {
+		p.total = total
+	}
+}
+
+func WithBarWidth(barWidth int) func(*ProgressOptions) {
+	return func(p *ProgressOptions) {
+		p.barWidth = barWidth
+	}
+}
+
+func WithRefreshInterval(refreshInterval time.Duration) func(*ProgressOptions) {
+	return func(p *ProgressOptions) {
+		p.refreshInterval = refreshInterval
+	}
+}
+
+type Progress struct {
+	options          *ProgressOptions
 	current          int
 	lastRefresh      time.Time
 	lastRefreshValue int
@@ -24,36 +44,21 @@ type Progress struct {
 	timeFromStart    time.Duration
 }
 
-func New(options ...func(*Progress)) *Progress {
-	progress := &Progress{
+func New(options ...func(*ProgressOptions)) *Progress {
+	progressOptions := &ProgressOptions{
 		total:           0,
 		barWidth:        DefaultBarWidth,
 		refreshInterval: DefaultRefreshInterval,
-		current:         0,
-		started:         time.Now(),
 	}
 	for _, option := range options {
-		option(progress)
+		option(progressOptions)
+	}
+	progress := &Progress{
+		options: progressOptions,
+		current: 0,
+		started: time.Now(),
 	}
 	return progress
-}
-
-func WithTotal(total int) func(*Progress) {
-	return func(p *Progress) {
-		p.total = total
-	}
-}
-
-func WithBarWidth(barWidth int) func(*Progress) {
-	return func(p *Progress) {
-		p.barWidth = barWidth
-	}
-}
-
-func WithRefreshInterval(refreshInterval time.Duration) func(*Progress) {
-	return func(p *Progress) {
-		p.refreshInterval = refreshInterval
-	}
 }
 
 func (p *Progress) Set(value int) {
@@ -79,7 +84,7 @@ func (p *Progress) update() {
 		p.lastRefreshValue = p.current
 	} else {
 		timeFromLastRefresh := now.Sub(p.lastRefresh)
-		if timeFromLastRefresh >= p.refreshInterval {
+		if timeFromLastRefresh >= p.options.refreshInterval {
 			p.speed = float64(p.current-p.lastRefreshValue) / timeFromLastRefresh.Seconds()
 			p.lastRefresh = now
 			p.lastRefreshValue = p.current
@@ -99,13 +104,13 @@ func (p *Progress) refresh() {
 
 func (p *Progress) renderBar() string {
 	bar := ""
-	if p.total > 0 {
-		percent := float64(p.current) / float64(p.total)
+	if p.options.total > 0 {
+		percent := float64(p.current) / float64(p.options.total)
 		percent = clamp(percent, 0, 1)
 		bar = fmt.Sprintf("%-4s", fmt.Sprintf("%d%%", int(percent*100)))
 		bar += " ["
-		barWidth := int(percent * float64(p.barWidth))
-		for i := 0; i < p.barWidth; i++ {
+		barWidth := int(percent * float64(p.options.barWidth))
+		for i := 0; i < p.options.barWidth; i++ {
 			if i < barWidth {
 				bar += "#"
 			} else {
@@ -115,8 +120,8 @@ func (p *Progress) renderBar() string {
 		bar += "] "
 	}
 	bar += fmt.Sprintf("%d ", p.current)
-	if p.total > 0 {
-		bar += fmt.Sprintf("/ %d ", p.total)
+	if p.options.total > 0 {
+		bar += fmt.Sprintf("/ %d ", p.options.total)
 	}
 	bar += fmt.Sprintf("(%s, %.2f it/s)", p.formatBarTime(), p.speed)
 	return bar
@@ -124,8 +129,8 @@ func (p *Progress) renderBar() string {
 
 func (p *Progress) formatBarTime() string {
 	formatted := formatDuration(p.timeFromStart)
-	if p.total > 0 {
-		percent := float64(p.current) / float64(p.total)
+	if p.options.total > 0 {
+		percent := float64(p.current) / float64(p.options.total)
 		percent = clamp(percent, 0, 1)
 		timeLeft := time.Duration(float64(p.timeFromStart) * (1 - percent) / percent)
 		formatted += fmt.Sprintf("<%s", formatDuration(timeLeft))
