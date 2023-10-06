@@ -36,6 +36,7 @@ func WithRefreshInterval(refreshInterval time.Duration) func(*ProgressOptions) {
 
 type Progress struct {
 	options          *ProgressOptions
+	renderer         Renderer
 	current          int
 	lastRefresh      time.Time
 	lastRefreshValue int
@@ -53,10 +54,12 @@ func New(options ...func(*ProgressOptions)) *Progress {
 	for _, option := range options {
 		option(progressOptions)
 	}
+	renderer := NewStdoutRenderer(progressOptions.barWidth)
 	progress := &Progress{
-		options: progressOptions,
-		current: 0,
-		started: time.Now(),
+		options:  progressOptions,
+		renderer: renderer,
+		current:  0,
+		started:  time.Now(),
 	}
 	return progress
 }
@@ -94,48 +97,23 @@ func (p *Progress) update() {
 }
 
 func (p *Progress) refresh() {
-	// move cursor to the beginning of the line
-	fmt.Print("\r")
-	bar := p.renderBar()
-	fmt.Print(bar)
-	// clear the rest of the line
-	fmt.Print("\033[K")
+	p.renderer.Render(p.state())
 }
 
-func (p *Progress) renderBar() string {
-	bar := ""
+func (p *Progress) state() *ProgressState {
+	var percent float64
+	var timeRemaining time.Duration
 	if p.options.total > 0 {
-		percent := float64(p.current) / float64(p.options.total)
+		percent = float64(p.current) / float64(p.options.total)
 		percent = clamp(percent, 0, 1)
-		bar = fmt.Sprintf("%-4s", fmt.Sprintf("%d%%", int(percent*100)))
-		bar += " ["
-		barWidth := int(percent * float64(p.options.barWidth))
-		for i := 0; i < p.options.barWidth; i++ {
-			if i < barWidth {
-				bar += "#"
-			} else {
-				bar += " "
-			}
-		}
-		bar += "] "
+		timeRemaining = time.Duration(float64(p.timeFromStart) * (1 - percent) / percent)
 	}
-	bar += fmt.Sprintf("%d ", p.current)
-	if p.options.total > 0 {
-		bar += fmt.Sprintf("/ %d ", p.options.total)
+	return &ProgressState{
+		Current:       p.current,
+		Total:         p.options.total,
+		Percent:       percent,
+		TimeElapsed:   p.timeFromStart,
+		TimeRemaining: timeRemaining,
+		Speed:         p.speed,
 	}
-	bar += fmt.Sprintf("(%s, %.2f it/s)", p.formatBarTime(), p.speed)
-	return bar
-}
-
-func (p *Progress) formatBarTime() string {
-	formatted := formatDuration(p.timeFromStart)
-	if p.options.total > 0 {
-		percent := float64(p.current) / float64(p.options.total)
-		percent = clamp(percent, 0, 1)
-		timeLeft := time.Duration(float64(p.timeFromStart) * (1 - percent) / percent)
-		formatted += fmt.Sprintf("<%s", formatDuration(timeLeft))
-	} else {
-		formatted += "<?"
-	}
-	return formatted
 }
